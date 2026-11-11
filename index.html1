@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClearLabel | Escanea. Conoce. Confía.</title>
+<style>
+  :root{
+    --bg: #FAF8F3;
+    --surface: #FFFFFF;
+    --primary: #D6497C;
+    --primary-dark: #A13460;
+    --accent: #E7A857;
+    --text: #1F2A24;
+    --text-muted: #5C6B62;
+    --border: #E3E0D6;
+    --green: #2E7D4F;
+    --green-bg: rgba(47,133,90,0.12);
+    --yellow: #A8722C;
+    --yellow-bg: rgba(231,168,87,0.2);
+    --red: #B3261E;
+    --red-bg: rgba(179,38,30,0.1);
+    --radius: 18px;
+    --nav-h: 72px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body{
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #EFEAE0;
+    color: var(--text);
+    line-height: 1.55;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Marco tipo celular: en compu se ve como teléfono, en celular ocupa toda la pantalla */
+  .phone{
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  @media (min-width: 500px){
+    body{ padding: 24px 0; }
+    .phone{
+      height: min(860px, calc(100vh - 48px));
+      border-radius: 36px;
+      border: 1px solid var(--border);
+      box-shadow: 0 30px 60px rgba(161,52,96,0.15);
+    }
+  }
+
+  /* Barra de arriba */
+  .topbar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 22px 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--primary-dark);
+    letter-spacing: -0.02em;
+  }
+
+  .logo-dot{
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .topbar-title{
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  /* Zona de pantallas */
+  .screens{
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .screen{ display: none; padding: 24px 22px; }
+  .screen.active{ display: block; }
+
+  /* Inicio */
+  .home-intro h1{
+    font-size: 1.9rem;
+    line-height: 1.15;
+    font-weight: 800;
+    color: var(--primary-dark);
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+  }
+
+  .home-intro p{
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 28px;
+  }
+
+  .steps-title{
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+
+  .steps{
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .step{
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+
+  .step-num{
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .step h3{ font-size: 0.98rem; font-weight: 700; }
+  .step p{ font-size: 0.88rem; color: var(--text-muted); }
+
+  .btn-primary{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 15px 20px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 10px 22px rgba(214,73,124,0.28);
+  }
+
+  .btn-primary:hover{ background: var(--primary-dark); }
+
+  .free-note{
+    margin-top: 16px;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  /* Resultado del escaneo */
+  .scan-frame{
+    position: relative;
+    height: 150px;
+    border-radius: var(--radius);
+    background: #2A2A2A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .scan-frame::before{
+    content: "";
+    position: absolute;
+    inset: 22px 40px;
+    border: 2px dashed rgba(255,255,255,0.6);
+    border-radius: 12px;
+  }
+
+  .scan-line{
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: scan 1.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes scan{
+    from{ top: 26px; }
+    to{ top: 124px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .scan-line{ animation: none; top: 75px; }
+  }
+
+  .scan-frame span{ position: relative; opacity: 0.85; }
+
+  .result-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+
+  .result-head{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .score-ring{
+    flex-shrink: 0;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(72 * 1%), var(--border) 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-ring-inner{
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .score-ring-inner strong{ font-size: 1.7rem; color: var(--text); }
+  .score-ring-inner small{ font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+  .product-label{ font-size: 0.8rem; color: var(--text-muted); }
+  .product-name{
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--primary-dark);
+    line-height: 1.2;
+    margin: 2px 0 6px;
+  }
+  .verdict{
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--yellow);
+    background: var(--yellow-bg);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+
+  .ingredients-title{
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .ingredient{
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .ingredient:first-of-type{ border-top: none; }
+
+  .dot{
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 6px;
+  }
+  .dot.green{ background: var(--green); }
+  .dot.yellow{ background: var(--accent); }
+  .dot.red{ background: var(--red); }
+
+  .ingredient-name{ font-weight: 700; font-size: 0.95rem; }
+  .ingredient-tag{
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+  .ingredient-tag.green{ color: var(--green); background: var(--green-bg); }
+  .ingredient-tag.yellow{ color: var(--yellow); background: var(--yellow-bg); }
+  .ingredient-tag.red{ color: var(--red); background: var(--red-bg); }
+  .ingredient-reason{ font-size: 0.85rem; color: var(--text-muted); }
+
+  .mock-note{
+    margin-top: 16px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* Búsqueda */
+  .search-box{
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.95rem;
+    font-family: inherit;
+    margin-bottom: 20px;
+  }
+
+  .search-box:focus{ outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .search-list{ list-style: none; }
+
+  .search-item{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+  }
+
+  .search-score{
+    font-weight: 800;
+    font-size: 0.9rem;
+    padding: 2px 10px;
+    border-radius: 999px;
+  }
+  .search-score.green{ color: var(--green); background: var(--green-bg); }
+  .search-score.yellow{ color: var(--yellow); background: var(--yellow-bg); }
+  .search-score.red{ color: var(--red); background: var(--red-bg); }
+
+  /* Barra de abajo */
+  .bottom-nav{
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .nav-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    width: 72px;
+  }
+
+  .nav-btn svg{ width: 24px; height: 24px; }
+  .nav-btn.active{ color: var(--primary); }
+
+  .nav-btn:focus-visible{ outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 8px; }
+
+  .nav-btn.camera{
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    margin-top: -34px;
+    border: 4px solid var(--bg);
+    box-shadow: 0 10px 22px rgba(214,73,124,0.35);
+    justify-content: center;
+  }
+
+  .nav-btn.camera svg{ width: 28px; height: 28px; }
+  .nav-btn.camera.active{ background: var(--primary-dark); color: #fff; }
+
+  /* Mi cuenta (Supabase Auth) */
+  .account-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 24px;
+  }
+  .account-card h2{ font-size: 1rem; font-weight: 800; margin-bottom: 10px; }
+  .auth-tabs{ display: flex; gap: 8px; margin-bottom: 12px; }
+  .auth-tab{
+    flex: 1;
+    padding: 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .auth-tab.active{ background: var(--primary); color: #fff; border-color: var(--primary); }
+  .auth-form{ display: flex; flex-direction: column; gap: 10px; }
+  .auth-form input{
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  .auth-form input:focus{ outline: 2px solid var(--primary); outline-offset: 1px; }
+  .auth-error{ color: var(--red); background: var(--red-bg); font-size: 0.85rem; padding: 8px 12px; border-radius: 10px; }
+  .hello{ font-size: 1.2rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 12px; }
+  .btn-secondary{
+    width: 100%;
+    padding: 12px;
+    border-radius: 999px;
+    border: 1px solid var(--primary);
+    background: transparent;
+    color: var(--primary-dark);
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  [hidden]{ display: none !important; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="phone">
+
+  <header class="topbar">
+    <div class="logo"><span class="logo-dot"></span>ClearLabel</div>
+    <span class="topbar-title" id="topbar-title">Inicio</span>
+  </header>
+
+  <main class="screens">
+
+    <!-- Pantalla: Inicio -->
+    <section class="screen active" id="screen-inicio">
+      <!-- Mi cuenta -->
+      <div class="account-card" id="account-card">
+        <div id="auth-forms">
+          <h2>Mi cuenta</h2>
+          <div class="auth-tabs">
+            <button type="button" class="auth-tab active" id="tab-registro" onclick="showAuthForm('registro')">Registrarme</button>
+            <button type="button" class="auth-tab" id="tab-login" onclick="showAuthForm('login')">Iniciar sesión</button>
+          </div>
+
+          <form class="auth-form" id="form-registro">
+            <input type="text" id="reg-nombre" placeholder="Tu nombre" required autocomplete="name">
+            <input type="email" id="reg-correo" placeholder="Correo" required autocomplete="email">
+            <input type="password" id="reg-pass" placeholder="Contraseña (mínimo 6)" required autocomplete="new-password">
+            <button type="submit" class="btn-primary">Crear cuenta</button>
+          </form>
+
+          <form class="auth-form" id="form-login" hidden>
+            <input type="email" id="log-correo" placeholder="Correo" required autocomplete="email">
+            <input type="password" id="log-pass" placeholder="Contraseña" required autocomplete="current-password">
+            <button type="submit" class="btn-primary">Entrar</button>
+          </form>
+
+          <p class="auth-error" id="auth-error" role="alert" hidden></p>
+        </div>
+
+        <div id="auth-hola" hidden>
+          <p class="hello" id="hola-texto"></p>
+          <button type="button" class="btn-secondary" onclick="cerrarSesion()">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <div class="home-intro">
+        <h1>Conoce lo que llevas a tu piel.</h1>
+        <p>ClearLabel escanea el envase de un producto y te da un puntaje de seguridad del 0 al 100, con cada ingrediente explicado en palabras simples.</p>
+      </div>
+
+      <h2 class="steps-title">Cómo usarla</h2>
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num">1</span>
+          <div>
+            <h3>Escanea el producto</h3>
+            <p>Pica el botón de cámara y apunta a la lista de ingredientes del envase.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">2</span>
+          <div>
+            <h3>Revisamos los ingredientes</h3>
+            <p>ClearLabel lee cada ingrediente y lo marca en verde, amarillo o rojo.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">3</span>
+          <div>
+            <h3>Ve tu puntaje</h3>
+            <p>Recibe un número del 0 al 100 y decide si lo compras o no.</p>
+          </div>
+        </li>
+      </ol>
+
+      <button class="btn-primary" onclick="showScreen('escanear')">Escanear un producto</button>
+      <p class="free-note">Escanear y ver ingredientes es gratis. Las alertas por tipo de piel son parte de ClearLabel Plus.</p>
+    </section>
+
+    <!-- Pantalla: Resultado de escaneo (ejemplo) -->
+    <section class="screen" id="screen-escanear">
+      <div class="scan-frame" aria-hidden="true">
+        <div class="scan-line"></div>
+        <span>Leyendo ingredientes...</span>
+      </div>
+
+      <div class="result-card">
+        <div class="result-head">
+          <div class="score-ring" role="img" aria-label="Puntaje 72 de 100">
+            <div class="score-ring-inner">
+              <strong>72</strong>
+              <small>/100</small>
+            </div>
+          </div>
+          <div>
+            <div class="product-label">Producto escaneado</div>
+            <div class="product-name">Shampoo Coco Brillo</div>
+            <span class="verdict">Aceptable, con cuidado</span>
+          </div>
+        </div>
+
+        <h3 class="ingredients-title">Ingredientes clave</h3>
+
+        <div class="ingredient">
+          <span class="dot green"></span>
+          <div>
+            <div class="ingredient-name">Glycerin <span class="ingredient-tag green">Seguro</span></div>
+            <div class="ingredient-reason">Humecta la piel y rara vez causa irritación.</div>
+          </div>
+        </div>
+
+        <div class="ingredient">
+          <span class="dot yellow"></span>
+          <div>
+            <div class="ingredient-name">Phenoxyethanol <span class="ingredient-tag yellow">Vigilar</span></div>
+            <div class="ingredient-reason">Conservador seguro en dosis bajas, pero puede irritar piel sensible.</div>
+          </div>
+        </div>
+
+        <div class="ingredient">
+          <span class="dot red"></span>
+          <div>
+            <div class="ingredient-name">Fragrance (Parfum) <span class="ingredient-tag red">Evitar si eres sensible</span></div>
+            <div class="ingredient-reason">Mezcla de aromas que no se detalla y es causa común de alergias en la piel.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="mock-note">Esto es un ejemplo. En la app real, este botón abre la cámara de tu celular.</p>
+    </section>
+
+    <!-- Pantalla: Búsqueda -->
+    <section class="screen" id="screen-buscar">
+      <input class="search-box" type="search" placeholder="Busca un producto o ingrediente" aria-label="Buscar producto o ingrediente">
+      <ul class="search-list">
+        <li class="search-item">Crema hidratante facial <span class="search-score green">92</span></li>
+        <li class="search-item">Bodywash Lavanda <span class="search-score green">87</span></li>
+        <li class="search-item">Shampoo Coco Brillo <span class="search-score yellow">72</span></li>
+        <li class="search-item">Desodorante Fresh Sport <span class="search-score red">41</span></li>
+      </ul>
+      <p class="mock-note">Productos de ejemplo para el mockup.</p>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <button class="nav-btn active" data-screen="inicio" onclick="showScreen('inicio')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      Inicio
+    </button>
+    <button class="nav-btn camera" data-screen="escanear" onclick="showScreen('escanear')" aria-label="Escanear producto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></svg>
+    </button>
+    <button class="nav-btn" data-screen="buscar" onclick="showScreen('buscar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Buscar
+    </button>
+  </nav>
+
+</div>
+
+<script>
+  const titles = { inicio: 'Inicio', escanear: 'Escanear', buscar: 'Buscar' };
+
+  function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.screen === name);
+    });
+
+    document.getElementById('topbar-title').textContent = titles[name];
+    document.querySelector('.screens').scrollTop = 0;
+  }
+
+  // ---------- Supabase Auth ----------
+  // Solo la publishable key (segura en el navegador con RLS encendido).
+  const SUPABASE_URL = 'https://jxyyxjhrktlqpaxpegvu.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_6eJkK5UMgVUtYhbP4zrPMQ_Jqosxdg6';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+  const $ = id => document.getElementById(id);
+
+  function showAuthForm(cual){
+    $('form-registro').hidden = cual !== 'registro';
+    $('form-login').hidden = cual !== 'login';
+    $('tab-registro').classList.toggle('active', cual === 'registro');
+    $('tab-login').classList.toggle('active', cual === 'login');
+    ocultarError();
+  }
+
+  function mostrarError(msg){ $('auth-error').textContent = msg; $('auth-error').hidden = false; }
+  function ocultarError(){ $('auth-error').hidden = true; }
+
+  function traducirError(err){
+    const m = (err && err.message || '').toLowerCase();
+    if (m.includes('already registered') || m.includes('already been registered') || m.includes('already exists')) return 'Este correo ya está registrado.';
+    if (m.includes('at least 6') || m.includes('password should be')) return 'La contraseña debe tener al menos 6 caracteres.';
+    if (m.includes('invalid login credentials')) return 'Correo o contraseña incorrectos.';
+    if (m.includes('invalid') && m.includes('email')) return 'El correo no es válido.';
+    return 'Ocurrió un error: ' + (err && err.message || 'intenta de nuevo.');
+  }
+
+  function mostrarHola(nombre){
+    $('hola-texto').textContent = 'Hola, ' + nombre;
+    $('auth-forms').hidden = true;
+    $('auth-hola').hidden = false;
+  }
+
+  function mostrarFormularios(){
+    $('auth-hola').hidden = true;
+    $('auth-forms').hidden = false;
+    $('form-registro').reset();
+    $('form-login').reset();
+    showAuthForm('registro');
+  }
+
+  async function leerNombre(user){
+    const { data, error } = await sb.from('perfiles').select('nombre').eq('id', user.id).maybeSingle();
+    if (error) console.error(error);
+    return (data && data.nombre) || (user.user_metadata && user.user_metadata.nombre) || user.email;
+  }
+
+  $('form-registro').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    ocultarError();
+    const nombre = $('reg-nombre').value.trim();
+    const correo = $('reg-correo').value.trim();
+    const pass = $('reg-pass').value;
+
+    if (!nombre) return mostrarError('Escribe tu nombre.');
+    if (pass.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
+
+    const { data, error } = await sb.auth.signUp({ email: correo, password: pass, options: { data: { nombre } } });
+    if (error) return mostrarError(traducirError(error));
+
+    // Si el correo ya existía, Supabase puede regresar un usuario sin identidades.
+    if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
+      return mostrarError('Este correo ya está registrado.');
+    }
+    if (!data.session) {
+      return mostrarError('No se pudo iniciar sesión. Revisa que "Confirm email" esté apagado en Supabase.');
+    }
+
+    const { error: errPerfil } = await sb.from('perfiles').insert({ id: data.user.id, nombre });
+    if (errPerfil) console.error(errPerfil);
+
+    mostrarHola(nombre);
+  });
+
+  $('form-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    ocultarError();
+    const correo = $('log-correo').value.trim();
+    const pass = $('log-pass').value;
+
+    const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: pass });
+    if (error) return mostrarError(traducirError(error));
+
+    mostrarHola(await leerNombre(data.user));
+  });
+
+  async function cerrarSesion(){
+    await sb.auth.signOut();
+    mostrarFormularios();
+  }
+
+  // Al recargar: si ya hay sesión, se mantiene.
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    if (data.session) mostrarHola(await leerNombre(data.session.user));
+  })();
+</script>
+
+</body>
+</html>
