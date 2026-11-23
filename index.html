@@ -465,6 +465,22 @@
     cursor: pointer;
   }
   [hidden]{ display: none !important; }
+
+  /* Escaneo real */
+  .scan-box{ display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .scan-hint{ font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+  .manual-form{ display: flex; flex-direction: column; gap: 8px; }
+  .manual-form .search-box{ margin-bottom: 0; }
+  .estado{ font-size: 0.9rem; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+  .estado.error{ color: var(--red); background: var(--red-bg); border-color: transparent; }
+  .opciones{ list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .opcion{ width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; cursor: pointer; font-family: inherit; }
+  .opcion:hover{ border-color: var(--primary); }
+  .opcion strong{ display: block; font-size: 0.95rem; color: var(--text); }
+  .opcion span{ font-size: 0.8rem; color: var(--text-muted); }
+  .fuente{ font-size: 0.75rem; color: var(--text-muted); margin-top: 12px; }
+  .verdict.green{ color: var(--green); background: var(--green-bg); }
+  .verdict.red{ color: var(--red); background: var(--red-bg); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -546,68 +562,31 @@
       <p class="free-note">Escanear y ver ingredientes es gratis. Las alertas por tipo de piel son parte de ClearLabel Plus.</p>
     </section>
 
-    <!-- Pantalla: Resultado de escaneo (ejemplo) -->
+    <!-- Pantalla: Escanear (función real) -->
     <section class="screen" id="screen-escanear">
-      <div class="scan-frame" aria-hidden="true">
-        <div class="scan-line"></div>
-        <span>Leyendo ingredientes...</span>
+      <div class="scan-box">
+        <label class="btn-primary" for="foto-input">Tomar foto del producto</label>
+        <input type="file" id="foto-input" accept="image/*" capture="environment" hidden>
+        <p class="scan-hint">Foto del frente para identificarlo. Foto de atrás si quieres que también lea los ingredientes.</p>
+
+        <form class="manual-form" id="form-manual">
+          <input class="search-box" type="search" id="manual-input" placeholder="O escribe el nombre del producto" aria-label="Nombre del producto">
+          <button type="submit" class="btn-secondary">Buscar por nombre</button>
+        </form>
       </div>
 
-      <div class="result-card">
-        <div class="result-head">
-          <div class="score-ring" role="img" aria-label="Puntaje 72 de 100">
-            <div class="score-ring-inner">
-              <strong>72</strong>
-              <small>/100</small>
-            </div>
-          </div>
-          <div>
-            <div class="product-label">Producto escaneado</div>
-            <div class="product-name">Shampoo Coco Brillo</div>
-            <span class="verdict">Aceptable, con cuidado</span>
-          </div>
-        </div>
-
-        <h3 class="ingredients-title">Ingredientes clave</h3>
-
-        <div class="ingredient">
-          <span class="dot green"></span>
-          <div>
-            <div class="ingredient-name">Glycerin <span class="ingredient-tag green">Seguro</span></div>
-            <div class="ingredient-reason">Humecta la piel y rara vez causa irritación.</div>
-          </div>
-        </div>
-
-        <div class="ingredient">
-          <span class="dot yellow"></span>
-          <div>
-            <div class="ingredient-name">Phenoxyethanol <span class="ingredient-tag yellow">Vigilar</span></div>
-            <div class="ingredient-reason">Conservador seguro en dosis bajas, pero puede irritar piel sensible.</div>
-          </div>
-        </div>
-
-        <div class="ingredient">
-          <span class="dot red"></span>
-          <div>
-            <div class="ingredient-name">Fragrance (Parfum) <span class="ingredient-tag red">Evitar si eres sensible</span></div>
-            <div class="ingredient-reason">Mezcla de aromas que no se detalla y es causa común de alergias en la piel.</div>
-          </div>
-        </div>
-      </div>
-
-      <p class="mock-note">Esto es un ejemplo. En la app real, este botón abre la cámara de tu celular.</p>
+      <p class="estado" id="estado-escanear" role="status" hidden></p>
+      <ul class="opciones" id="opciones-escanear"></ul>
+      <div id="resultado"></div>
     </section>
 
     <!-- Pantalla: Búsqueda -->
     <section class="screen" id="screen-buscar">
-      <input class="search-box" type="search" placeholder="Busca un producto o ingrediente" aria-label="Buscar producto o ingrediente">
-      <ul class="search-list">
-        <li class="search-item">Crema hidratante facial <span class="search-score green">92</span></li>
-        <li class="search-item">Bodywash Lavanda <span class="search-score green">87</span></li>
-        <li class="search-item">Shampoo Coco Brillo <span class="search-score yellow">72</span></li>
-        <li class="search-item">Desodorante Fresh Sport <span class="search-score red">41</span></li>
-      </ul>
-      <p class="mock-note">Productos de ejemplo para el mockup.</p>
+      <form id="form-buscar">
+        <input class="search-box" type="search" id="buscar-input" placeholder="Busca un producto por nombre" aria-label="Buscar producto">
+      </form>
+      <p class="estado" id="estado-buscar" role="status" hidden></p>
+      <ul class="opciones" id="opciones-buscar"></ul>
     </section>
 
   </main>
@@ -740,6 +719,220 @@
     const { data } = await sb.auth.getSession();
     if (data.session) mostrarHola(await leerNombre(data.session.user));
   })();
+
+  // ---------- Escanear: foto -> Gemini -> Open Beauty Facts -> semáforo ----------
+  const MSG_NO_ENCONTRADO = 'Lo siento, este producto no fue encontrado.';
+  const MSG_SIN_INGREDIENTES = 'Este producto no tiene ingredientes registrados.';
+
+  async function llamarApi(datos){
+    const r = await fetch('/api/analizar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    const json = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(json.error || ('Error ' + r.status));
+    return json;
+  }
+
+  function ponerEstado(id, texto, esError){
+    const el = $(id);
+    el.textContent = texto || '';
+    el.hidden = !texto;
+    el.classList.toggle('error', !!esError);
+  }
+
+  // Achica la foto antes de mandarla (las fotos del celular pesan mucho).
+  function achicarFoto(archivo){
+    return new Promise((ok, mal) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1280;
+        const escala = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * escala);
+        c.height = Math.round(img.height * escala);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        ok(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => mal(new Error('No se pudo leer la foto.'));
+      img.src = URL.createObjectURL(archivo);
+    });
+  }
+
+  // Separa el texto de ingredientes por comas, sin romper lo que va entre paréntesis.
+  function separarIngredientes(texto){
+    const lista = [];
+    let actual = '', nivel = 0;
+    for (const ch of texto) {
+      if (ch === '(' || ch === '[') nivel++;
+      if (ch === ')' || ch === ']') nivel = Math.max(0, nivel - 1);
+      if ((ch === ',' || ch === ';') && nivel === 0) { lista.push(actual); actual = ''; }
+      else actual += ch;
+    }
+    lista.push(actual);
+    return lista.map(x => x.replace(/[*_.]+$/g, '').trim()).filter(Boolean);
+  }
+
+  // Muestra hasta 5 opciones para que el usuario elija la correcta.
+  function mostrarOpciones(listaId, productos, alElegir){
+    const ul = $(listaId);
+    ul.innerHTML = '';
+    productos.slice(0, 5).forEach(p => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opcion';
+      const t = document.createElement('strong');
+      t.textContent = p.nombre || 'Sin nombre';
+      const m = document.createElement('span');
+      m.textContent = p.marca || '';
+      b.append(t, m);
+      b.onclick = () => alElegir(p);
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+
+  async function buscarEnOBF(nombre){
+    const { productos } = await llamarApi({ accion: 'buscar', q: nombre });
+    return productos || [];
+  }
+
+  // Mi regla de puntaje (Paso 1): empieza en 100, -15 por rojo, -5 por amarillo, mínimo 0.
+  function calcularPuntaje(clasificados){
+    const rojos = clasificados.filter(i => i.color === 'rojo').length;
+    const amarillos = clasificados.filter(i => i.color === 'amarillo').length;
+    return { puntaje: Math.max(0, 100 - 15 * rojos - 5 * amarillos), rojos, amarillos };
+  }
+
+  const COLOR_CSS = { verde: 'green', amarillo: 'yellow', rojo: 'red' };
+  const ETIQUETA = { verde: 'Seguro', amarillo: 'Vigilar', rojo: 'Evitar' };
+
+  function pintarResultado(producto, clasificados){
+    const { puntaje, rojos, amarillos } = calcularPuntaje(clasificados);
+    const nivel = puntaje >= 80 ? 'verde' : puntaje >= 50 ? 'amarillo' : 'rojo';
+    const veredicto = { verde: 'Seguro', amarillo: 'Aceptable, con cuidado', rojo: 'Mejor evitar' }[nivel];
+    const color = { verde: 'var(--green)', amarillo: 'var(--accent)', rojo: 'var(--red)' }[nivel];
+
+    const cont = $('resultado');
+    cont.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="result-head">
+        <div class="score-ring" role="img" style="background: conic-gradient(${color} calc(${puntaje} * 1%), var(--border) 0)">
+          <div class="score-ring-inner"><strong></strong><small>/100</small></div>
+        </div>
+        <div>
+          <div class="product-label">Producto</div>
+          <div class="product-name"></div>
+          <span class="verdict ${COLOR_CSS[nivel]}"></span>
+        </div>
+      </div>
+      <h3 class="ingredients-title">Ingredientes</h3>
+      <div class="lista-ing"></div>
+      <p class="fuente"></p>`;
+    card.querySelector('.score-ring').setAttribute('aria-label', `Puntaje ${puntaje} de 100`);
+    card.querySelector('.score-ring-inner strong').textContent = puntaje;
+    card.querySelector('.product-name').textContent = [producto.marca, producto.nombre].filter(Boolean).join(' · ');
+    card.querySelector('.verdict').textContent = veredicto;
+    card.querySelector('.fuente').textContent =
+      `${rojos} rojo(s), ${amarillos} amarillo(s). Fuente de ingredientes: ${producto.fuente}. Semáforo hecho por IA (Gemini) con mi regla.`;
+
+    const lista = card.querySelector('.lista-ing');
+    clasificados.forEach(i => {
+      const c = COLOR_CSS[i.color] || 'green';
+      const row = document.createElement('div');
+      row.className = 'ingredient';
+      row.innerHTML = `<span class="dot ${c}"></span><div><div class="ingredient-name"><span class="n"></span> <span class="ingredient-tag ${c}"></span></div><div class="ingredient-reason"></div></div>`;
+      row.querySelector('.n').textContent = i.nombre;
+      row.querySelector('.ingredient-tag').textContent = ETIQUETA[i.color] || 'Seguro';
+      row.querySelector('.ingredient-reason').textContent = i.razon || '';
+      lista.appendChild(row);
+    });
+    cont.appendChild(card);
+  }
+
+  // Al picar una opción: semáforo con Gemini + puntaje con mi regla.
+  async function analizarProducto(p){
+    showScreen('escanear');
+    $('opciones-escanear').innerHTML = '';
+    $('resultado').innerHTML = '';
+    const ingredientes = p.ingredientes && p.ingredientes.length ? p.ingredientes : separarIngredientes(p.ingredientes_text || '');
+    if (!ingredientes.length) return ponerEstado('estado-escanear', MSG_SIN_INGREDIENTES, true);
+
+    ponerEstado('estado-escanear', 'Revisando ' + ingredientes.length + ' ingredientes...');
+    try {
+      const { clasificados } = await llamarApi({ accion: 'clasificar', ingredientes });
+      ponerEstado('estado-escanear', '');
+      pintarResultado(p, clasificados);
+    } catch (err) {
+      console.error(err);
+      ponerEstado('estado-escanear', 'No se pudo revisar los ingredientes: ' + err.message, true);
+    }
+  }
+
+  async function buscarYMostrar(nombre, estadoId, listaId, extra){
+    ponerEstado(estadoId, 'Buscando "' + nombre + '" en Open Beauty Facts...');
+    $(listaId).innerHTML = '';
+    let productos = [];
+    try { productos = await buscarEnOBF(nombre); }
+    catch (err) { console.error(err); }
+    if (extra) productos = [extra, ...productos].slice(0, 5);
+    if (!productos.length) return ponerEstado(estadoId, MSG_NO_ENCONTRADO, true);
+    ponerEstado(estadoId, 'Elige tu producto:');
+    mostrarOpciones(listaId, productos, analizarProducto);
+  }
+
+  // 1) Foto
+  $('foto-input').addEventListener('change', async (e) => {
+    const archivo = e.target.files[0];
+    e.target.value = '';
+    if (!archivo) return;
+    $('resultado').innerHTML = '';
+    $('opciones-escanear').innerHTML = '';
+    ponerEstado('estado-escanear', 'Identificando el producto...');
+    try {
+      const imagen = await achicarFoto(archivo);
+      const id = await llamarApi({ accion: 'identificar', imagen, mime: 'image/jpeg' });
+
+      // Si Gemini leyó la lista de ingredientes en la etiqueta, la ofrezco como una opción más (decisión C).
+      const deFoto = (id.ingredientes && id.ingredientes.length)
+        ? { nombre: (id.nombre || 'Producto de tu foto') + ' (ingredientes leídos de tu foto)', marca: 'Leído por IA, revisa que coincida con la etiqueta', ingredientes: id.ingredientes, fuente: 'foto de la etiqueta leída por Gemini' }
+        : null;
+
+      if (!id.encontrado || !id.nombre) {
+        if (deFoto) { ponerEstado('estado-escanear', 'Elige tu producto:'); return mostrarOpciones('opciones-escanear', [deFoto], analizarProducto); }
+        ponerEstado('estado-escanear', 'No pude identificar el producto. Escribe su nombre abajo.', true);
+        return $('manual-input').focus();
+      }
+      $('manual-input').value = id.nombre;
+      await buscarYMostrar(id.nombre, 'estado-escanear', 'opciones-escanear', deFoto);
+    } catch (err) {
+      console.error(err);
+      ponerEstado('estado-escanear', 'No pude identificar el producto. Escribe su nombre abajo.', true);
+      $('manual-input').focus();
+    }
+  });
+
+  // 2) Respaldo: escribir el nombre
+  $('form-manual').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nombre = $('manual-input').value.trim();
+    if (!nombre) return ponerEstado('estado-escanear', 'Escribe el nombre del producto.', true);
+    $('resultado').innerHTML = '';
+    buscarYMostrar(nombre, 'estado-escanear', 'opciones-escanear');
+  });
+
+  // 3) Pantalla Buscar (decisión D)
+  $('form-buscar').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nombre = $('buscar-input').value.trim();
+    if (!nombre) return;
+    buscarYMostrar(nombre, 'estado-buscar', 'opciones-buscar');
+  });
 </script>
 
 </body>
