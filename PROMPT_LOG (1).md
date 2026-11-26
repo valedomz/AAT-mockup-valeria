@@ -20,8 +20,8 @@ Repo: https://github.com/valedomz/AAT-mockup-valeria
 
 Actualización después del Paso 2 (decisiones C y D): si el producto no está en Open Beauty Facts y la foto muestra la lista de ingredientes, Gemini la lee y la app la ofrece como una opción marcada "leído por IA". La pantalla Buscar también busca en Open Beauty Facts.
 
-Auditada por: [nombre de tu pareja en la S19]
-Cambios después de la auditoría: [si tu pareja te hizo cambiar algo, escríbelo aquí]
+Auditada por: Valeria Amoumbrad
+Cambios después de la auditoría: Mi compañera me preguntó qué pasaba si el producto o sus ingredientes no estaban en Open Beauty Facts. Eso me hizo ver que muchos productos se iban a quedar sin resultado. Por eso agregué que, si no está, Gemini lea los ingredientes directo de la foto de la etiqueta (decisión C), marcados como "leído por IA".
 
 ### Decisiones al definir la especificación
 - Escanear la botella completa con IA en vez del código de barras, con respaldo de escribir el nombre por si la foto falla. Razón: [tu razón]
