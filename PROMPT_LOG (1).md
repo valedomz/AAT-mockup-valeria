@@ -36,17 +36,18 @@ Herramienta: Claude (chat). Mi prompt: "Construye mi función según mi especifi
 |---|-------------------|-------------------------------------|-------------|---------|
 | A | Agregar un archivo nuevo, api/analizar.js (función de Vercel), además de index.html, para guardar la llave de Gemini | Qué datos necesita (Gemini) | Aceptar | [tu razón, por ejemplo: si la llave va en index.html cualquiera la puede ver y usar] |
 | B | Si el producto existe pero no tiene ingredientes en Open Beauty Facts, mostrar "Este producto no tiene ingredientes registrados" | Cómo sabré que funciona (caso que mi especificación no cubría) | Aceptar | [tu razón] |
-| C | Si el producto no está en Open Beauty Facts, que Gemini lea los ingredientes de la foto de la etiqueta | Qué datos necesita: cambia la fuente de los ingredientes (mi especificación decía solo Open Beauty Facts) | Aceptar, y actualizo mi especificación | [tu razón] La app marca esa opción como "leído por IA" para que se sepa de dónde salió. |
-| D | Conectar también la pantalla Buscar a Open Beauty Facts | Qué hace: está fuera de mi especificación | Aceptar (alcance extra) | [tu razón] |
-| E | En las instrucciones de Gemini (api/analizar.js) Claude agregó: los alérgenos de fragancia (Linalool, Limonene, Citronellol, Coumarin) van en amarillo, y una aclaración de que Sodium Lauroyl Isethionate y Sodium Methyl Lauroyl Taurate NO son sulfatos | Qué datos necesita: mi regla de semáforo. Mi regla solo decía Parfum en amarillo | [Aceptar / Rechazar / Revisar] | [tu razón. Ojo: la aclaración ayuda a que mi caso de Dove pase, ¿es justo dejarla?] |
-| F | El puntaje lo calcula el código, no Gemini | Mi regla de puntaje | [Aceptar / Rechazar] | [tu razón, por ejemplo: así siempre da lo mismo con los mismos colores] |
-| G | Gemini saturado (503) y Vercel cortando (504): A) reintentar, B) reintentar y usar modelo ligero, C) solo mensaje en español | Qué datos necesita (Gemini) | B, más 60 segundos en vercel.json | [tu razón] |
+| C | Si el producto no está en Open Beauty Facts, que Gemini lea los ingredientes de la foto de la etiqueta | Qué datos necesita: cambia la fuente de los ingredientes (mi especificación decía solo Open Beauty Facts) | Aceptar, y actualizo mi especificación | Muchos productos mexicanos o nuevos no están en Open Beauty Facts, como mi Dove Uniform Skin; así la app sirve aunque no lo encuentre. La app marca esa opción como "leído por IA" para que se sepa de dónde salió. |
+| D | Conectar también la pantalla Buscar a Open Beauty Facts | Qué hace: está fuera de mi especificación | Aceptar (alcance extra) | Usaba la misma búsqueda de Open Beauty Facts, así que conectarla era poco trabajo extra. |
+| E | En las instrucciones de Gemini (api/analizar.js) Claude agregó: los alérgenos de fragancia (Linalool, Limonene, Citronellol, Coumarin) van en amarillo, y una aclaración de que Sodium Lauroyl Isethionate y Sodium Methyl Lauroyl Taurate NO son sulfatos | Qué datos necesita: mi regla de semáforo. Mi regla solo decía Parfum en amarillo | Aceptar | esos ingredientes sí son fragancias y la aclaración evita que la IA confunda ingredientes suaves con sulfatos |
+| F | El puntaje lo calcula el código, no Gemini | Mi regla de puntaje | Mi regla (100 − 15 por rojo − 5 por amarillo) es mía y la puedo comprobar contando colores. |
+| G | Gemini saturado (503) y Vercel cortando (504): A) reintentar, B) reintentar y usar modelo ligero, C) solo mensaje en español | Qué datos necesita (Gemini) | B, más 60 segundos en vercel.json | Si Gemini falla justo cuando alguien prueba mi app, parece rota; prefiero una respuesta un poco menos precisa a ninguna. |
 
-## Paso 3: Validación
+## Paso 3: Veredicto
 
-- Deploy confirmado: sí, 25 de noviembre de 2026, https://aat-mockup-valeria.vercel.app
-- Input exacto: escribí "Dove" en la pantalla Escanear → "Buscar por nombre" → elegí "Dove · Go fresh"
-- Output real (copiado de la pantalla):
+Veredicto: Revisar
+Razón: Perfume/Fragrance sí salió en amarillo como dice mi regla, pero el primer ingrediente trae texto basura ("ance das cri INGREDIENTS/INGREDIENTE:") porque la app no limpia el texto de Open Beauty Facts.
+Input exacto: escribí "Dove" en la pantalla Escanear → "Buscar por nombre" → elegí "Dove · Go fresh". Deploy confirmado el 25 de noviembre.
+Output real (copiado de la pantalla):
 ```
 60 /100 · Aceptable, con cuidado
 Dove · Go fresh
@@ -56,10 +57,7 @@ Propane · Seguro · Gas propelente común y seguro.
 Aluminum PPG-14 Butyl Ether · Seguro · Emoliente acondicionador seguro para la piel.
 Cyclopentasiloxane · Seguro · Silicona que aporta textura suave y es segura.
 Perfume/Fragrance · Vigilar · Fragancia que puede irritar la piel sensible.
-[copia aquí los demás ingredientes que salen al bajar]
 ```
-- Veredicto: [Aceptar / Rechazar / Revisar]
-- Razón: [1 o 2 líneas que citen algo del output de arriba]
 
 ### Problemas que encontré al probar (antes de que funcionara)
 1. Al buscar "Dove" salía "Lo siento, este producto no fue encontrado". La causa real era que el archivo api/analizar.js quedó en api/api/api/ y Vercel no lo encontraba (404). El código del IS escondía ese error como si el producto no existiera.
